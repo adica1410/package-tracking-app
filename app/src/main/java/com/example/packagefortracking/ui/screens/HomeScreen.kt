@@ -33,12 +33,20 @@ fun HomeScreen(
     onSettingsClick: () -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf("All") }
+    var searchQuery by remember { mutableStateOf("") }
 
-    val filteredPackages = when (selectedFilter) {
-        "In Transit" -> dummyPackages.filter { it.status == PackageStatus.IN_TRANSIT || it.status == PackageStatus.OUT_FOR_DELIVERY }
-        "Delivered" -> dummyPackages.filter { it.status == PackageStatus.DELIVERED }
-        else -> dummyPackages.filter { it.status != PackageStatus.ARCHIVED }
-    }
+    val filteredPackages = dummyPackages
+        .filter {
+            when (selectedFilter) {
+                "In Transit" -> it.status == PackageStatus.IN_TRANSIT || it.status == PackageStatus.OUT_FOR_DELIVERY
+                "Delivered" -> it.status == PackageStatus.DELIVERED
+                else -> it.status != PackageStatus.ARCHIVED
+            }
+        }
+        .filter {
+            it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.trackingNumber.contains(searchQuery, ignoreCase = true)
+        }
 
     Scaffold(
         containerColor = AppBackground,
@@ -75,7 +83,10 @@ fun HomeScreen(
             }
 
             item {
-                SearchBox()
+                SearchBox(
+                    searchQuery = searchQuery,
+                    onSearchChange = { searchQuery = it }
+                )
             }
 
             item {
@@ -156,37 +167,47 @@ private fun HomeHeader() {
 }
 
 @Composable
-private fun SearchBox() {
+private fun SearchBox(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit
+) {
     Card(
         modifier = Modifier
             .padding(horizontal = 18.dp)
             .offset(y = (-28).dp)
-            .fillMaxWidth()
-            .height(58.dp),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = TextMuted
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "Search by tracking number...",
-                color = TextMuted,
-                fontSize = 14.sp
-            )
-        }
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    text = "Search by name or tracking number...",
+                    color = TextMuted,
+                    fontSize = 14.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = TextMuted
+                )
+            },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppSurface,
+                unfocusedBorderColor = AppSurface,
+                focusedContainerColor = AppSurface,
+                unfocusedContainerColor = AppSurface,
+                cursorColor = Primary
+            ),
+            shape = RoundedCornerShape(18.dp)
+        )
     }
 }
 
