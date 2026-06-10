@@ -23,6 +23,8 @@ import com.example.packagefortracking.data.dummyPackages
 import com.example.packagefortracking.ui.components.AppBottomBar
 import com.example.packagefortracking.ui.components.PackageCard
 import com.example.packagefortracking.ui.theme.*
+import androidx.compose.material.icons.filled.Inventory2
+
 
 @Composable
 fun HomeScreen(
@@ -95,10 +97,20 @@ fun HomeScreen(
                     onFilterSelected = { selectedFilter = it }
                 )
             }
+            item {
+                HomeSummary()
+            }
 
             item {
                 SectionTitle()
             }
+            if (filteredPackages.isEmpty()) {
+                item {
+                    EmptyPackagesState(
+                        onAddPackageClick = onAddPackageClick
+                    )
+                }
+            } else {
 
             items(filteredPackages) { packageItem ->
                 Box(
@@ -109,6 +121,8 @@ fun HomeScreen(
                         onClick = onPackageClick
                     )
                 }
+
+            }
             }
         }
     }
@@ -269,7 +283,7 @@ private fun SectionTitle() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Active packages",
+            text = "My packages",
             color = TextDark,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -282,5 +296,79 @@ private fun SectionTitle() {
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
+    }
+}
+@Composable
+private fun HomeSummary() {
+    val total = dummyPackages.count { it.status != PackageStatus.ARCHIVED }
+    val inTransit = dummyPackages.count {
+        it.status == PackageStatus.IN_TRANSIT ||
+                it.status == PackageStatus.OUT_FOR_DELIVERY
+    }
+    val delivered = dummyPackages.count { it.status == PackageStatus.DELIVERED }
+
+    Text(
+        text = "$total packages • $inTransit in transit • $delivered delivered",
+        color = TextMuted,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .padding(horizontal = 18.dp)
+            .offset(y = (-6).dp)
+    )
+}
+@Composable
+private fun EmptyPackagesState(
+    onAddPackageClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 18.dp),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Inventory2,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(56.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "No packages found",
+                color = TextDark,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Try changing your search or add a new package.",
+                color = TextMuted,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Button(
+                onClick = onAddPackageClick,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Accent,
+                    contentColor = Primary
+                )
+            ) {
+                Text("Add Package", fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }

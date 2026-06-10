@@ -28,7 +28,7 @@ fun StatusChip(
 
     val text = when (status) {
         PackageStatus.IN_TRANSIT -> "In Transit"
-        PackageStatus.OUT_FOR_DELIVERY -> "Out For Delivery"
+        PackageStatus.OUT_FOR_DELIVERY -> "Out Delivery"
         PackageStatus.DELIVERED -> "Delivered"
         PackageStatus.ARCHIVED -> "Archived"
     }
