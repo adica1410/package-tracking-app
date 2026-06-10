@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,16 +19,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.packagefortracking.data.PackageEntity
+import com.example.packagefortracking.data.PackageItem
 import com.example.packagefortracking.data.PackageStatus
-import com.example.packagefortracking.data.dummyPackages
+import com.example.packagefortracking.data.PostalService
 import com.example.packagefortracking.ui.components.AppBottomBar
 import com.example.packagefortracking.ui.components.PackageCard
 import com.example.packagefortracking.ui.theme.*
-import androidx.compose.material.icons.filled.Inventory2
-
 
 @Composable
 fun HomeScreen(
+    packages: List<PackageEntity>,
     onAddPackageClick: () -> Unit,
     onPackageClick: () -> Unit,
     onArchiveClick: () -> Unit,
@@ -37,12 +39,14 @@ fun HomeScreen(
     var selectedFilter by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredPackages = dummyPackages
+    val filteredPackages = packages
         .filter {
+            val status = statusFromString(it.status)
+
             when (selectedFilter) {
-                "In Transit" -> it.status == PackageStatus.IN_TRANSIT || it.status == PackageStatus.OUT_FOR_DELIVERY
-                "Delivered" -> it.status == PackageStatus.DELIVERED
-                else -> it.status != PackageStatus.ARCHIVED
+                "In Transit" -> status == PackageStatus.IN_TRANSIT || status == PackageStatus.OUT_FOR_DELIVERY
+                "Delivered" -> status == PackageStatus.DELIVERED
+                else -> status != PackageStatus.ARCHIVED
             }
         }
         .filter {
@@ -74,6 +78,7 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -97,13 +102,15 @@ fun HomeScreen(
                     onFilterSelected = { selectedFilter = it }
                 )
             }
+
             item {
-                HomeSummary()
+                HomeSummary(packages = packages)
             }
 
             item {
-                SectionTitle()
+                SectionTitle(totalPackages = filteredPackages.size)
             }
+
             if (filteredPackages.isEmpty()) {
                 item {
                     EmptyPackagesState(
@@ -111,18 +118,16 @@ fun HomeScreen(
                     )
                 }
             } else {
-
-            items(filteredPackages) { packageItem ->
-                Box(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
-                ) {
-                    PackageCard(
-                        packageItem = packageItem,
-                        onClick = onPackageClick
-                    )
+                items(filteredPackages) { packageEntity ->
+                    Box(
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
+                    ) {
+                        PackageCard(
+                            packageItem = packageEntity.toPackageItem(),
+                            onClick = onPackageClick
+                        )
+                    }
                 }
-
-            }
             }
         }
     }
@@ -275,7 +280,9 @@ private fun FilterButton(
 }
 
 @Composable
-private fun SectionTitle() {
+private fun SectionTitle(
+    totalPackages: Int
+) {
     Row(
         modifier = Modifier
             .padding(horizontal = 18.dp)
@@ -291,21 +298,28 @@ private fun SectionTitle() {
         )
 
         Text(
-            text = "${dummyPackages.size} total",
+            text = "$totalPackages total",
             color = TextMuted,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
     }
 }
+
 @Composable
-private fun HomeSummary() {
-    val total = dummyPackages.count { it.status != PackageStatus.ARCHIVED }
-    val inTransit = dummyPackages.count {
-        it.status == PackageStatus.IN_TRANSIT ||
-                it.status == PackageStatus.OUT_FOR_DELIVERY
+private fun HomeSummary(
+    packages: List<PackageEntity>
+) {
+    val total = packages.count { statusFromString(it.status) != PackageStatus.ARCHIVED }
+
+    val inTransit = packages.count {
+        val status = statusFromString(it.status)
+        status == PackageStatus.IN_TRANSIT || status == PackageStatus.OUT_FOR_DELIVERY
     }
-    val delivered = dummyPackages.count { it.status == PackageStatus.DELIVERED }
+
+    val delivered = packages.count {
+        statusFromString(it.status) == PackageStatus.DELIVERED
+    }
 
     Text(
         text = "$total packages • $inTransit in transit • $delivered delivered",
@@ -317,6 +331,7 @@ private fun HomeSummary() {
             .offset(y = (-6).dp)
     )
 }
+
 @Composable
 private fun EmptyPackagesState(
     onAddPackageClick: () -> Unit
@@ -370,5 +385,37 @@ private fun EmptyPackagesState(
                 Text("Add Package", fontWeight = FontWeight.Bold)
             }
         }
+    }
+}
+
+private fun PackageEntity.toPackageItem(): PackageItem {
+    return PackageItem(
+        id = id,
+        name = name,
+        trackingNumber = trackingNumber,
+        postalService = postalServiceFromString(postalService),
+        status = statusFromString(status),
+        lastUpdate = lastUpdate,
+        estimatedDelivery = estimatedDelivery,
+        notificationsEnabled = notificationsEnabled
+    )
+}
+
+private fun statusFromString(status: String): PackageStatus {
+    return when (status) {
+        "IN_TRANSIT" -> PackageStatus.IN_TRANSIT
+        "OUT_FOR_DELIVERY" -> PackageStatus.OUT_FOR_DELIVERY
+        "DELIVERED" -> PackageStatus.DELIVERED
+        "ARCHIVED" -> PackageStatus.ARCHIVED
+        else -> PackageStatus.IN_TRANSIT
+    }
+}
+
+private fun postalServiceFromString(postalService: String): PostalService {
+    return when (postalService) {
+        "BH Post" -> PostalService.BH_POST
+        "HP Mostar" -> PostalService.HP_MOSTAR
+        "Pošta Srpske" -> PostalService.POSTA_SRPSKE
+        else -> PostalService.BH_POST
     }
 }
