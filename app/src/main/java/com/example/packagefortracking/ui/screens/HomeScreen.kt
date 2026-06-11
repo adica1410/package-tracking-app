@@ -31,7 +31,7 @@ import com.example.packagefortracking.ui.theme.*
 fun HomeScreen(
     packages: List<PackageEntity>,
     onAddPackageClick: () -> Unit,
-    onPackageClick: () -> Unit,
+    onPackageClick: (PackageEntity) -> Unit,
     onArchiveClick: () -> Unit,
     onStatisticsClick: () -> Unit,
     onSettingsClick: () -> Unit
@@ -124,7 +124,9 @@ fun HomeScreen(
                     ) {
                         PackageCard(
                             packageItem = packageEntity.toPackageItem(),
-                            onClick = onPackageClick
+                            onClick = {
+                                onPackageClick(packageEntity)
+                            }
                         )
                     }
                 }

@@ -1,28 +1,24 @@
 package com.example.packagefortracking.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.packagefortracking.ui.screens.AddPackageScreen
-import com.example.packagefortracking.ui.screens.ArchiveScreen
-import com.example.packagefortracking.ui.screens.EditPackageScreen
-import com.example.packagefortracking.ui.screens.HomeScreen
-import com.example.packagefortracking.ui.screens.PackageDetailsScreen
-import com.example.packagefortracking.ui.screens.SettingsScreen
-import com.example.packagefortracking.ui.screens.StatisticsScreen
+import com.example.packagefortracking.data.PackageEntity
+import com.example.packagefortracking.ui.screens.*
 import com.example.packagefortracking.viewmodel.PackageViewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 
 @Composable
 fun PackageNavigation(
     packageViewModel: PackageViewModel
 ) {
     val navController = rememberNavController()
+
     val activePackages by packageViewModel.activePackages.collectAsState()
     val archivedPackages by packageViewModel.archivedPackages.collectAsState()
     val allPackages by packageViewModel.allPackages.collectAsState()
+
+    var selectedPackage by remember { mutableStateOf<PackageEntity?>(null) }
 
     NavHost(
         navController = navController,
@@ -34,7 +30,8 @@ fun PackageNavigation(
                 onAddPackageClick = {
                     navController.navigate(AppScreen.AddPackage.route)
                 },
-                onPackageClick = {
+                onPackageClick = { packageEntity ->
+                    selectedPackage = packageEntity
                     navController.navigate(AppScreen.PackageDetails.route)
                 },
                 onArchiveClick = {
@@ -63,19 +60,35 @@ fun PackageNavigation(
 
         composable(AppScreen.PackageDetails.route) {
             PackageDetailsScreen(
+                packageEntity = selectedPackage,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onEditClick = {
                     navController.navigate(AppScreen.EditPackage.route)
+                },
+                onArchiveClick = { updatedPackage ->
+                    packageViewModel.updatePackage(updatedPackage)
+                    navController.popBackStack()
                 }
             )
         }
 
         composable(AppScreen.EditPackage.route) {
             EditPackageScreen(
+                packageEntity = selectedPackage,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onSaveChanges = { updatedPackage ->
+                    packageViewModel.updatePackage(updatedPackage)
+                    selectedPackage = updatedPackage
+                    navController.popBackStack()
+                },
+                onDeletePackage = { packageToDelete ->
+                    packageViewModel.deletePackage(packageToDelete)
+                    selectedPackage = null
+                    navController.popBackStack(AppScreen.Home.route, inclusive = false)
                 }
             )
         }

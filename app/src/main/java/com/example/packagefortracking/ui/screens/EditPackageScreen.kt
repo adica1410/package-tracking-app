@@ -2,6 +2,7 @@ package com.example.packagefortracking.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -17,17 +18,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.packagefortracking.data.PackageEntity
 import com.example.packagefortracking.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPackageScreen(
-    onBackClick: () -> Unit
+    packageEntity: PackageEntity?,
+    onBackClick: () -> Unit,
+    onSaveChanges: (PackageEntity) -> Unit,
+    onDeletePackage: (PackageEntity) -> Unit
 ) {
-    var packageName by remember { mutableStateOf("Shoes from China") }
-    var trackingNumber by remember { mutableStateOf("RR123456789CN") }
-    var selectedProvider by remember { mutableStateOf("BH Post") }
-    var notificationsEnabled by remember { mutableStateOf(true) }
+    if (packageEntity == null) {
+        MissingEditPackageScreen(onBackClick = onBackClick)
+        return
+    }
+
+    var packageName by remember(packageEntity.id) { mutableStateOf(packageEntity.name) }
+    var trackingNumber by remember(packageEntity.id) { mutableStateOf(packageEntity.trackingNumber) }
+    var selectedProvider by remember(packageEntity.id) { mutableStateOf(packageEntity.postalService) }
+    var notificationsEnabled by remember(packageEntity.id) {
+        mutableStateOf(packageEntity.notificationsEnabled)
+    }
 
     val providers = listOf("BH Post", "HP Mostar", "Pošta Srpske")
 
@@ -50,134 +62,204 @@ fun EditPackageScreen(
         }
     ) { paddingValues ->
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppBackground)
-                .padding(paddingValues)
-                .padding(20.dp)
+                .padding(paddingValues),
+            contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = AppSurface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(modifier = Modifier.padding(22.dp)) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = AppSurface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(22.dp)) {
+                        Text(
+                            text = "Update package details",
+                            color = TextDark,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
 
-                    Text(
-                        text = "Update package details",
-                        color = TextDark,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                        Text(
+                            text = "Edit package name, tracking number or notification settings.",
+                            color = TextMuted,
+                            fontSize = 14.sp
+                        )
 
-                    Text(
-                        text = "Edit package name, tracking number or notification settings.",
-                        color = TextMuted,
-                        fontSize = 14.sp
-                    )
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                        OutlinedTextField(
+                            value = packageName,
+                            onValueChange = { packageName = it },
+                            label = { Text("Package name") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Inventory2, contentDescription = null)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true
+                        )
 
-                    OutlinedTextField(
-                        value = packageName,
-                        onValueChange = { packageName = it },
-                        label = { Text("Package name") },
-                        leadingIcon = { Icon(Icons.Default.Inventory2, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true
-                    )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = trackingNumber,
+                            onValueChange = { trackingNumber = it },
+                            label = { Text("Tracking number") },
+                            leadingIcon = {
+                                Icon(Icons.Default.QrCode2, contentDescription = null)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true
+                        )
 
-                    OutlinedTextField(
-                        value = trackingNumber,
-                        onValueChange = { trackingNumber = it },
-                        label = { Text("Tracking number") },
-                        leadingIcon = { Icon(Icons.Default.QrCode2, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true
-                    )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        EditProviderSelector(
+                            providers = providers,
+                            selectedProvider = selectedProvider,
+                            onProviderSelected = { selectedProvider = it }
+                        )
 
-                    EditProviderSelector(
-                        providers = providers,
-                        selectedProvider = selectedProvider,
-                        onProviderSelected = { selectedProvider = it }
-                    )
+                        Spacer(modifier = Modifier.height(18.dp))
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(AppBackground, RoundedCornerShape(18.dp))
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = null,
+                                tint = Primary
+                            )
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(AppBackground, RoundedCornerShape(18.dp))
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Notifications, contentDescription = null, tint = Primary)
+                            Spacer(modifier = Modifier.width(12.dp))
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Notifications",
+                                    color = TextDark,
+                                    fontWeight = FontWeight.SemiBold
+                                )
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Notifications", color = TextDark, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "Notify me when status changes.",
-                                color = TextMuted,
-                                fontSize = 12.sp
+                                Text(
+                                    text = "Notify me when status changes.",
+                                    color = TextMuted,
+                                    fontSize = 12.sp
+                                )
+                            }
+
+                            Switch(
+                                checked = notificationsEnabled,
+                                onCheckedChange = { notificationsEnabled = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = AppSurface,
+                                    checkedTrackColor = Primary,
+                                    uncheckedThumbColor = AppSurface,
+                                    uncheckedTrackColor = TextMuted.copy(alpha = 0.4f)
+                                )
                             )
                         }
-
-                        Switch(
-                            checked = notificationsEnabled,
-                            onCheckedChange = { notificationsEnabled = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AppSurface,
-                                checkedTrackColor = Primary
-                            )
-                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
-            OutlinedButton(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Error
-                )
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Delete Package", fontWeight = FontWeight.Bold)
+            item {
+                OutlinedButton(
+                    onClick = {
+                        onDeletePackage(packageEntity)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Error
+                    )
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete Package", fontWeight = FontWeight.Bold)
+                }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = onBackClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Accent,
-                    contentColor = Primary
-                )
-            ) {
-                Icon(Icons.Default.LocalShipping, contentDescription = null)
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            item {
+                Button(
+                    onClick = {
+                        onSaveChanges(
+                            packageEntity.copy(
+                                name = packageName.ifBlank { "Unnamed Package" },
+                                trackingNumber = trackingNumber.ifBlank { "Unknown" },
+                                postalService = selectedProvider,
+                                notificationsEnabled = notificationsEnabled
+                            )
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Accent,
+                        contentColor = Primary
+                    )
+                ) {
+                    Icon(Icons.Default.LocalShipping, contentDescription = null)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Save Changes",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MissingEditPackageScreen(
+    onBackClick: () -> Unit
+) {
+    Scaffold(
+        containerColor = AppBackground,
+        topBar = {
+            TopAppBar(
+                title = { Text("Edit Package", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Primary,
+                    titleContentColor = AppSurface,
+                    navigationIconContentColor = AppSurface
+                )
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Package not found",
+                color = TextMuted,
+                fontSize = 16.sp
+            )
         }
     }
 }
@@ -210,7 +292,9 @@ private fun EditProviderSelector(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary)
             ) {
                 Icon(Icons.Default.LocalShipping, contentDescription = null)
+
                 Spacer(modifier = Modifier.width(10.dp))
+
                 Text(
                     text = selectedProvider,
                     modifier = Modifier.weight(1f),

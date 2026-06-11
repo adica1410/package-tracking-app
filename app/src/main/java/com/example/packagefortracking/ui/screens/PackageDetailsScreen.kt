@@ -2,13 +2,17 @@ package com.example.packagefortracking.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,32 +20,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.packagefortracking.data.dummyPackages
+import com.example.packagefortracking.data.PackageEntity
+import com.example.packagefortracking.data.PackageItem
+import com.example.packagefortracking.data.PackageStatus
+import com.example.packagefortracking.data.PostalService
 import com.example.packagefortracking.ui.components.StatusChip
 import com.example.packagefortracking.ui.components.TimelineItem
 import com.example.packagefortracking.ui.components.providerName
 import com.example.packagefortracking.ui.theme.*
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material.icons.filled.Edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PackageDetailsScreen(
+    packageEntity: PackageEntity?,
     onBackClick: () -> Unit,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    onArchiveClick: (PackageEntity) -> Unit
 ) {
-    val packageItem = dummyPackages.first()
+    if (packageEntity == null) {
+        MissingPackageScreen(onBackClick = onBackClick)
+        return
+    }
+
+    val packageItem = packageEntity.toPackageItem()
+    val progress = progressForStatus(packageItem.status)
 
     Scaffold(
         containerColor = AppBackground,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Package Details",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("Package Details", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -65,11 +73,13 @@ fun PackageDetailsScreen(
             )
         }
     ) { paddingValues ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppBackground)
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(18.dp)
         ) {
             Card(
@@ -101,7 +111,8 @@ fun PackageDetailsScreen(
                                 text = packageItem.name,
                                 color = TextDark,
                                 fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2
                             )
 
                             Text(
@@ -117,7 +128,7 @@ fun PackageDetailsScreen(
                     Spacer(modifier = Modifier.height(22.dp))
 
                     LinearProgressIndicator(
-                        progress = { 0.65f },
+                        progress = { progress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp),
@@ -153,33 +164,102 @@ fun PackageDetailsScreen(
                 Column(modifier = Modifier.padding(20.dp)) {
                     TimelineItem(
                         title = "Package registered",
-                        description = "Shipment information received.",
-                        date = "10 Mar 2026, 09:20",
+                        description = "Shipment was added to the tracking list.",
+                        date = packageItem.lastUpdate,
                         completed = true
                     )
 
                     TimelineItem(
                         title = "Accepted by postal service",
-                        description = "Package accepted at sorting center.",
-                        date = "11 Mar 2026, 13:45",
-                        completed = true
+                        description = "Waiting for official postal tracking update.",
+                        date = "Pending update",
+                        completed = packageItem.status != PackageStatus.IN_TRANSIT
                     )
 
                     TimelineItem(
                         title = "In transit",
-                        description = "Package is moving to destination city.",
-                        date = "13 Mar 2026, 18:10",
-                        completed = true
+                        description = "Package is moving through the delivery network.",
+                        date = packageItem.lastUpdate,
+                        completed = packageItem.status == PackageStatus.IN_TRANSIT ||
+                                packageItem.status == PackageStatus.OUT_FOR_DELIVERY ||
+                                packageItem.status == PackageStatus.DELIVERED
                     )
 
                     TimelineItem(
                         title = "Out for delivery",
                         description = "Courier will deliver the package soon.",
                         date = "Expected soon",
-                        completed = false
+                        completed = packageItem.status == PackageStatus.OUT_FOR_DELIVERY ||
+                                packageItem.status == PackageStatus.DELIVERED
+                    )
+
+                    TimelineItem(
+                        title = "Delivered",
+                        description = "Package has been delivered successfully.",
+                        date = packageItem.estimatedDelivery,
+                        completed = packageItem.status == PackageStatus.DELIVERED
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            OutlinedButton(
+                onClick = {
+                    onArchiveClick(packageEntity.copy(status = "ARCHIVED"))
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Primary
+                )
+            ) {
+                Icon(Icons.Default.Archive, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Move to Archive", fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MissingPackageScreen(
+    onBackClick: () -> Unit
+) {
+    Scaffold(
+        containerColor = AppBackground,
+        topBar = {
+            TopAppBar(
+                title = { Text("Package Details", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Primary,
+                    titleContentColor = AppSurface,
+                    navigationIconContentColor = AppSurface
+                )
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Package not found",
+                color = TextMuted,
+                fontSize = 16.sp
+            )
         }
     }
 }
@@ -217,5 +297,46 @@ private fun DetailRow(
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+}
+
+private fun PackageEntity.toPackageItem(): PackageItem {
+    return PackageItem(
+        id = id,
+        name = name,
+        trackingNumber = trackingNumber,
+        postalService = postalServiceFromString(postalService),
+        status = statusFromString(status),
+        lastUpdate = lastUpdate,
+        estimatedDelivery = estimatedDelivery,
+        notificationsEnabled = notificationsEnabled
+    )
+}
+
+private fun statusFromString(status: String): PackageStatus {
+    return when (status) {
+        "IN_TRANSIT" -> PackageStatus.IN_TRANSIT
+        "OUT_FOR_DELIVERY" -> PackageStatus.OUT_FOR_DELIVERY
+        "DELIVERED" -> PackageStatus.DELIVERED
+        "ARCHIVED" -> PackageStatus.ARCHIVED
+        else -> PackageStatus.IN_TRANSIT
+    }
+}
+
+private fun postalServiceFromString(postalService: String): PostalService {
+    return when (postalService) {
+        "BH Post" -> PostalService.BH_POST
+        "HP Mostar" -> PostalService.HP_MOSTAR
+        "Pošta Srpske" -> PostalService.POSTA_SRPSKE
+        else -> PostalService.BH_POST
+    }
+}
+
+private fun progressForStatus(status: PackageStatus): Float {
+    return when (status) {
+        PackageStatus.IN_TRANSIT -> 0.45f
+        PackageStatus.OUT_FOR_DELIVERY -> 0.75f
+        PackageStatus.DELIVERED -> 1f
+        PackageStatus.ARCHIVED -> 1f
     }
 }
