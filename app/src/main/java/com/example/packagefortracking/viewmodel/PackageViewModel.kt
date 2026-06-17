@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.example.packagefortracking.viewmodel.PackageViewModel
+import com.example.packagefortracking.tracking.TrackingProviderFactory
 
 class PackageViewModel(
     private val repository: PackageRepository
@@ -52,6 +53,48 @@ class PackageViewModel(
     fun deletePackage(packageEntity: PackageEntity) {
         viewModelScope.launch {
             repository.deletePackage(packageEntity)
+        }
+    }
+    fun refreshPackage(packageEntity: PackageEntity) {
+        viewModelScope.launch {
+            val provider = TrackingProviderFactory.createProvider(
+                packageEntity.postalService
+            )
+
+            val result = provider.track(
+                packageEntity.trackingNumber
+            )
+
+            val updatedPackage = packageEntity.copy(
+                status = result.status,
+                lastUpdate = result.lastUpdate,
+                estimatedDelivery = result.estimatedDelivery
+            )
+
+            repository.updatePackage(updatedPackage)
+        }
+    }
+    fun refreshPackageAndReturn(
+        packageEntity: PackageEntity,
+        onUpdated: (PackageEntity) -> Unit
+    ) {
+        viewModelScope.launch {
+            val provider = TrackingProviderFactory.createProvider(
+                packageEntity.postalService
+            )
+
+            val result = provider.track(
+                packageEntity.trackingNumber
+            )
+
+            val updatedPackage = packageEntity.copy(
+                status = result.status,
+                lastUpdate = result.lastUpdate,
+                estimatedDelivery = result.estimatedDelivery
+            )
+
+            repository.updatePackage(updatedPackage)
+            onUpdated(updatedPackage)
         }
     }
 }

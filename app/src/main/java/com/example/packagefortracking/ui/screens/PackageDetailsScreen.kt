@@ -35,7 +35,8 @@ fun PackageDetailsScreen(
     packageEntity: PackageEntity?,
     onBackClick: () -> Unit,
     onEditClick: () -> Unit,
-    onArchiveClick: (PackageEntity) -> Unit
+    onArchiveClick: (PackageEntity) -> Unit,
+    onRefreshClick: (PackageEntity) -> Unit
 ) {
     if (packageEntity == null) {
         MissingPackageScreen(onBackClick = onBackClick)
@@ -60,7 +61,7 @@ fun PackageDetailsScreen(
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }
 
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = { onRefreshClick(packageEntity) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                 },
