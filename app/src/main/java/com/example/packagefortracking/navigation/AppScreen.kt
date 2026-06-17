@@ -1,6 +1,7 @@
 package com.example.packagefortracking.navigation
 
 sealed class AppScreen(val route: String) {
+    data object Splash : AppScreen("splash")
     data object Home : AppScreen("home")
     data object AddPackage : AppScreen("add_package")
     data object PackageDetails : AppScreen("package_details")

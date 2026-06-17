@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,27 +19,40 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.packagefortracking.data.PackageEntity
+import com.example.packagefortracking.data.PackageItem
 import com.example.packagefortracking.data.PackageStatus
-import com.example.packagefortracking.data.dummyPackages
+import com.example.packagefortracking.data.PostalService
 import com.example.packagefortracking.ui.components.AppBottomBar
 import com.example.packagefortracking.ui.components.PackageCard
 import com.example.packagefortracking.ui.theme.*
 
 @Composable
 fun HomeScreen(
+    packages: List<PackageEntity>,
     onAddPackageClick: () -> Unit,
-    onPackageClick: () -> Unit,
+    onPackageClick: (PackageEntity) -> Unit,
     onArchiveClick: () -> Unit,
     onStatisticsClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf("All") }
+    var searchQuery by remember { mutableStateOf("") }
 
-    val filteredPackages = when (selectedFilter) {
-        "In Transit" -> dummyPackages.filter { it.status == PackageStatus.IN_TRANSIT || it.status == PackageStatus.OUT_FOR_DELIVERY }
-        "Delivered" -> dummyPackages.filter { it.status == PackageStatus.DELIVERED }
-        else -> dummyPackages.filter { it.status != PackageStatus.ARCHIVED }
-    }
+    val filteredPackages = packages
+        .filter {
+            val status = statusFromString(it.status)
+
+            when (selectedFilter) {
+                "In Transit" -> status == PackageStatus.IN_TRANSIT || status == PackageStatus.OUT_FOR_DELIVERY
+                "Delivered" -> status == PackageStatus.DELIVERED
+                else -> status != PackageStatus.ARCHIVED
+            }
+        }
+        .filter {
+            it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.trackingNumber.contains(searchQuery, ignoreCase = true)
+        }
 
     Scaffold(
         containerColor = AppBackground,
@@ -64,6 +78,7 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -75,7 +90,10 @@ fun HomeScreen(
             }
 
             item {
-                SearchBox()
+                SearchBox(
+                    searchQuery = searchQuery,
+                    onSearchChange = { searchQuery = it }
+                )
             }
 
             item {
@@ -86,17 +104,31 @@ fun HomeScreen(
             }
 
             item {
-                SectionTitle()
+                HomeSummary(packages = packages)
             }
 
-            items(filteredPackages) { packageItem ->
-                Box(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
-                ) {
-                    PackageCard(
-                        packageItem = packageItem,
-                        onClick = onPackageClick
+            item {
+                SectionTitle(totalPackages = filteredPackages.size)
+            }
+
+            if (filteredPackages.isEmpty()) {
+                item {
+                    EmptyPackagesState(
+                        onAddPackageClick = onAddPackageClick
                     )
+                }
+            } else {
+                items(filteredPackages) { packageEntity ->
+                    Box(
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp)
+                    ) {
+                        PackageCard(
+                            packageItem = packageEntity.toPackageItem(),
+                            onClick = {
+                                onPackageClick(packageEntity)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -129,7 +161,7 @@ private fun HomeHeader() {
                 .padding(top = 46.dp)
         ) {
             Text(
-                text = "Welcome back, Ada",
+                text = "Welcome to Package Tracker",
                 color = AppSurface.copy(alpha = 0.85f),
                 fontSize = 15.sp
             )
@@ -156,37 +188,47 @@ private fun HomeHeader() {
 }
 
 @Composable
-private fun SearchBox() {
+private fun SearchBox(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit
+) {
     Card(
         modifier = Modifier
             .padding(horizontal = 18.dp)
             .offset(y = (-28).dp)
-            .fillMaxWidth()
-            .height(58.dp),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = AppSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = TextMuted
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "Search by tracking number...",
-                color = TextMuted,
-                fontSize = 14.sp
-            )
-        }
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    text = "Search by name or tracking number...",
+                    color = TextMuted,
+                    fontSize = 14.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = TextMuted
+                )
+            },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppSurface,
+                unfocusedBorderColor = AppSurface,
+                focusedContainerColor = AppSurface,
+                unfocusedContainerColor = AppSurface,
+                cursorColor = Primary
+            ),
+            shape = RoundedCornerShape(18.dp)
+        )
     }
 }
 
@@ -240,7 +282,9 @@ private fun FilterButton(
 }
 
 @Composable
-private fun SectionTitle() {
+private fun SectionTitle(
+    totalPackages: Int
+) {
     Row(
         modifier = Modifier
             .padding(horizontal = 18.dp)
@@ -248,7 +292,7 @@ private fun SectionTitle() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Active packages",
+            text = "My packages",
             color = TextDark,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -256,10 +300,124 @@ private fun SectionTitle() {
         )
 
         Text(
-            text = "${dummyPackages.size} total",
+            text = "$totalPackages total",
             color = TextMuted,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
+    }
+}
+
+@Composable
+private fun HomeSummary(
+    packages: List<PackageEntity>
+) {
+    val total = packages.count { statusFromString(it.status) != PackageStatus.ARCHIVED }
+
+    val inTransit = packages.count {
+        val status = statusFromString(it.status)
+        status == PackageStatus.IN_TRANSIT || status == PackageStatus.OUT_FOR_DELIVERY
+    }
+
+    val delivered = packages.count {
+        statusFromString(it.status) == PackageStatus.DELIVERED
+    }
+
+    Text(
+        text = "$total packages • $inTransit in transit • $delivered delivered",
+        color = TextMuted,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .padding(horizontal = 18.dp)
+            .offset(y = (-6).dp)
+    )
+}
+
+@Composable
+private fun EmptyPackagesState(
+    onAddPackageClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 18.dp),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = AppSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Inventory2,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(56.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "No packages found",
+                color = TextDark,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Try changing your search or add a new package.",
+                color = TextMuted,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Button(
+                onClick = onAddPackageClick,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Accent,
+                    contentColor = Primary
+                )
+            ) {
+                Text("Add Package", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+private fun PackageEntity.toPackageItem(): PackageItem {
+    return PackageItem(
+        id = id,
+        name = name,
+        trackingNumber = trackingNumber,
+        postalService = postalServiceFromString(postalService),
+        status = statusFromString(status),
+        lastUpdate = lastUpdate,
+        estimatedDelivery = estimatedDelivery,
+        notificationsEnabled = notificationsEnabled
+    )
+}
+
+private fun statusFromString(status: String): PackageStatus {
+    return when (status) {
+        "IN_TRANSIT" -> PackageStatus.IN_TRANSIT
+        "OUT_FOR_DELIVERY" -> PackageStatus.OUT_FOR_DELIVERY
+        "DELIVERED" -> PackageStatus.DELIVERED
+        "ARCHIVED" -> PackageStatus.ARCHIVED
+        else -> PackageStatus.IN_TRANSIT
+    }
+}
+
+private fun postalServiceFromString(postalService: String): PostalService {
+    return when (postalService) {
+        "BH Post" -> PostalService.BH_POST
+        "HP Mostar" -> PostalService.HP_MOSTAR
+        "Pošta Srpske" -> PostalService.POSTA_SRPSKE
+        else -> PostalService.BH_POST
     }
 }

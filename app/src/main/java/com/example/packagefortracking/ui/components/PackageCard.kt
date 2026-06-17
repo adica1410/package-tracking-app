@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.example.packagefortracking.data.PackageItem
 import com.example.packagefortracking.data.PostalService
 import com.example.packagefortracking.ui.theme.*
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun PackageCard(
@@ -61,6 +62,8 @@ fun PackageCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = packageItem.name,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = TextDark,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -70,6 +73,8 @@ fun PackageCard(
 
                     Text(
                         text = providerName(packageItem.postalService),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = TextMuted,
                         fontSize = 13.sp
                     )
