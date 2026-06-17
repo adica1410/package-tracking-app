@@ -18,9 +18,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.packagefortracking.data.AppPreferences
+import com.example.packagefortracking.notification.NotificationHelper
 import com.example.packagefortracking.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,10 +31,13 @@ import com.example.packagefortracking.ui.theme.*
 fun SettingsScreen(
     onBackClick: () -> Unit
 ) {
-    var notifications by remember { mutableStateOf(true) }
-    var darkMode by remember { mutableStateOf(false) }
-    var autoRefresh by remember { mutableStateOf(true) }
-    var deliveryAlerts by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val preferences = remember { AppPreferences(context) }
+
+    var notifications by remember { mutableStateOf(preferences.isNotificationsEnabled()) }
+    var darkMode by remember { mutableStateOf(preferences.isDarkModeEnabled()) }
+    var autoRefresh by remember { mutableStateOf(preferences.isAutoRefreshEnabled()) }
+    var deliveryAlerts by remember { mutableStateOf(preferences.isDeliveryAlertsEnabled()) }
 
     Scaffold(
         containerColor = AppBackground,
@@ -85,7 +91,19 @@ fun SettingsScreen(
                     subtitle = "Notify when package status changes.",
                     icon = Icons.Default.Notifications,
                     checked = notifications,
-                    onCheckedChange = { notifications = it }
+                    onCheckedChange = {
+                        notifications = it
+                        preferences.setNotificationsEnabled(it)
+
+                        NotificationHelper.showPackageNotification(
+                            context = context,
+                            title = if (it) "Notifications enabled" else "Notifications disabled",
+                            message = if (it)
+                                "You will receive package tracking updates."
+                            else
+                                "You will no longer receive package tracking updates."
+                        )
+                    }
                 )
 
                 SettingsSwitchRow(
@@ -93,7 +111,10 @@ fun SettingsScreen(
                     subtitle = "Refresh saved packages automatically.",
                     icon = Icons.Default.Sync,
                     checked = autoRefresh,
-                    onCheckedChange = { autoRefresh = it }
+                    onCheckedChange = {
+                        autoRefresh = it
+                        preferences.setAutoRefreshEnabled(it)
+                    }
                 )
 
                 SettingsSwitchRow(
@@ -101,7 +122,19 @@ fun SettingsScreen(
                     subtitle = "Receive alerts for upcoming deliveries.",
                     icon = Icons.Default.Timer,
                     checked = deliveryAlerts,
-                    onCheckedChange = { deliveryAlerts = it }
+                    onCheckedChange = {
+                        deliveryAlerts = it
+                        preferences.setDeliveryAlertsEnabled(it)
+
+                        NotificationHelper.showPackageNotification(
+                            context = context,
+                            title = if (it) "Delivery alerts enabled" else "Delivery alerts disabled",
+                            message = if (it)
+                                "You will receive alerts for upcoming deliveries."
+                            else
+                                "Delivery alert notifications are turned off."
+                        )
+                    }
                 )
             }
 
@@ -115,7 +148,10 @@ fun SettingsScreen(
                     subtitle = "Dark interface support will be available in the next version.",
                     icon = Icons.Default.DarkMode,
                     checked = darkMode,
-                    onCheckedChange = { darkMode = it }
+                    onCheckedChange = {
+                        darkMode = it
+                        preferences.setDarkModeEnabled(it)
+                    }
                 )
             }
 
