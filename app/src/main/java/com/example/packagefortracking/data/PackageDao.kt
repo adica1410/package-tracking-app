@@ -19,6 +19,9 @@ interface PackageDao {
     @Query("SELECT * FROM packages WHERE status = 'ARCHIVED'")
     fun getArchivedPackages(): Flow<List<PackageEntity>>
 
+    @Query("SELECT * FROM packages")
+    suspend fun getAllPackagesOnce(): List<PackageEntity>
+
     @Insert
     suspend fun insertPackage(packageEntity: PackageEntity)
 

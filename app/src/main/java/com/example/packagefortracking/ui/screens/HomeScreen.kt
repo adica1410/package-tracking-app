@@ -161,7 +161,7 @@ private fun HomeHeader() {
                 .padding(top = 46.dp)
         ) {
             Text(
-                text = "Welcome back, Ada",
+                text = "Welcome to Package Tracker",
                 color = AppSurface.copy(alpha = 0.85f),
                 fontSize = 15.sp
             )

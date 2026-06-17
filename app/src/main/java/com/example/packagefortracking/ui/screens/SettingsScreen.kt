@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.packagefortracking.data.AppPreferences
 import com.example.packagefortracking.notification.NotificationHelper
 import com.example.packagefortracking.ui.theme.*
+import com.example.packagefortracking.worker.WorkScheduler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,6 +115,24 @@ fun SettingsScreen(
                     onCheckedChange = {
                         autoRefresh = it
                         preferences.setAutoRefreshEnabled(it)
+
+                        if (it) {
+                            WorkScheduler.scheduleTrackingRefresh(context)
+
+                            NotificationHelper.showPackageNotification(
+                                context = context,
+                                title = "Auto refresh enabled",
+                                message = "Package tracking will refresh automatically."
+                            )
+                        } else {
+                            WorkScheduler.cancelTrackingRefresh(context)
+
+                            NotificationHelper.showPackageNotification(
+                                context = context,
+                                title = "Auto refresh disabled",
+                                message = "Automatic tracking refresh has been turned off."
+                            )
+                        }
                     }
                 )
 

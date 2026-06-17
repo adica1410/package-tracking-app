@@ -14,6 +14,7 @@ import com.example.packagefortracking.notification.NotificationHelper
 import com.example.packagefortracking.ui.theme.PackageForTrackingTheme
 import com.example.packagefortracking.viewmodel.PackageViewModel
 import com.example.packagefortracking.viewmodel.PackageViewModelFactory
+import com.example.packagefortracking.worker.WorkScheduler
 
 class MainActivity : ComponentActivity() {
 
@@ -24,6 +25,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WorkScheduler.scheduleTrackingRefresh(this)
 
         NotificationHelper.createNotificationChannel(this)
 
