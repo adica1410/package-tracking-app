@@ -1,6 +1,5 @@
 package com.example.packagefortracking.data
 
-
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
@@ -8,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [PackageEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,7 +24,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "package_tracking_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build()
 
                 INSTANCE = instance
                 instance

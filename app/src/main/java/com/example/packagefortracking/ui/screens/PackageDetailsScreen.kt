@@ -24,6 +24,7 @@ import com.example.packagefortracking.data.PackageEntity
 import com.example.packagefortracking.data.PackageItem
 import com.example.packagefortracking.data.PackageStatus
 import com.example.packagefortracking.data.PostalService
+import com.example.packagefortracking.tracking.TrackingEvent
 import com.example.packagefortracking.ui.components.StatusChip
 import com.example.packagefortracking.ui.components.TimelineItem
 import com.example.packagefortracking.ui.components.providerName
@@ -45,6 +46,7 @@ fun PackageDetailsScreen(
 
     val packageItem = packageEntity.toPackageItem()
     val progress = progressForStatus(packageItem.status)
+    val trackingEvents = parseTrackingEvents(packageEntity.trackingEvents)
 
     Scaffold(
         containerColor = AppBackground,
@@ -94,7 +96,10 @@ fun PackageDetailsScreen(
                         Box(
                             modifier = Modifier
                                 .size(60.dp)
-                                .background(Accent.copy(alpha = 0.18f), RoundedCornerShape(20.dp)),
+                                .background(
+                                    Accent.copy(alpha = 0.18f),
+                                    RoundedCornerShape(20.dp)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -163,43 +168,51 @@ fun PackageDetailsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    TimelineItem(
-                        title = "Package registered",
-                        description = "Shipment was added to the tracking list.",
-                        date = packageItem.lastUpdate,
-                        completed = true
-                    )
+                    if (trackingEvents.isEmpty()) {
+                        TimelineItem(
+                            title = "Package registered",
+                            description = "Shipment was added to the tracking list.",
+                            date = packageItem.lastUpdate,
+                            completed = true
+                        )
 
-                    TimelineItem(
-                        title = "Accepted by postal service",
-                        description = "Waiting for official postal tracking update.",
-                        date = "Pending update",
-                        completed = packageItem.status != PackageStatus.IN_TRANSIT
-                    )
+                        TimelineItem(
+                            title = "Accepted by postal service",
+                            description = "Waiting for official postal tracking update.",
+                            date = "Pending update",
+                            completed = false
+                        )
 
-                    TimelineItem(
-                        title = "In transit",
-                        description = "Package is moving through the delivery network.",
-                        date = packageItem.lastUpdate,
-                        completed = packageItem.status == PackageStatus.IN_TRANSIT ||
-                                packageItem.status == PackageStatus.OUT_FOR_DELIVERY ||
-                                packageItem.status == PackageStatus.DELIVERED
-                    )
+                        TimelineItem(
+                            title = "In transit",
+                            description = "Package is waiting for the first tracking refresh.",
+                            date = "Pending",
+                            completed = false
+                        )
 
-                    TimelineItem(
-                        title = "Out for delivery",
-                        description = "Courier will deliver the package soon.",
-                        date = "Expected soon",
-                        completed = packageItem.status == PackageStatus.OUT_FOR_DELIVERY ||
-                                packageItem.status == PackageStatus.DELIVERED
-                    )
+                        TimelineItem(
+                            title = "Out for delivery",
+                            description = "Courier delivery has not started yet.",
+                            date = "Pending",
+                            completed = false
+                        )
 
-                    TimelineItem(
-                        title = "Delivered",
-                        description = "Package has been delivered successfully.",
-                        date = packageItem.estimatedDelivery,
-                        completed = packageItem.status == PackageStatus.DELIVERED
-                    )
+                        TimelineItem(
+                            title = "Delivered",
+                            description = "Package has not been delivered yet.",
+                            date = "Pending",
+                            completed = false
+                        )
+                    } else {
+                        trackingEvents.forEach { event ->
+                            TimelineItem(
+                                title = event.title,
+                                description = event.description,
+                                date = event.date,
+                                completed = event.completed
+                            )
+                        }
+                    }
                 }
             }
 
@@ -339,5 +352,24 @@ private fun progressForStatus(status: PackageStatus): Float {
         PackageStatus.OUT_FOR_DELIVERY -> 0.75f
         PackageStatus.DELIVERED -> 1f
         PackageStatus.ARCHIVED -> 1f
+    }
+}
+
+private fun parseTrackingEvents(events: String): List<TrackingEvent> {
+    if (events.isBlank()) return emptyList()
+
+    return events.split("||").mapNotNull { rawEvent ->
+        val parts = rawEvent.split("###")
+
+        if (parts.size != 4) {
+            null
+        } else {
+            TrackingEvent(
+                title = parts[0],
+                description = parts[1],
+                date = parts[2],
+                completed = parts[3].toBoolean()
+            )
+        }
     }
 }

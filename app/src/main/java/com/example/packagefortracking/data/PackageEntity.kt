@@ -14,5 +14,6 @@ data class PackageEntity(
     val status: String,
     val lastUpdate: String,
     val estimatedDelivery: String,
-    val notificationsEnabled: Boolean
+    val notificationsEnabled: Boolean,
+    val trackingEvents: String = ""
 )

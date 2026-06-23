@@ -195,12 +195,18 @@ fun EditPackageScreen(
             item {
                 Button(
                     onClick = {
+                        val providerChanged = selectedProvider != packageEntity.postalService
+
                         onSaveChanges(
                             packageEntity.copy(
                                 name = packageName.ifBlank { "Unnamed Package" },
                                 trackingNumber = trackingNumber.ifBlank { "Unknown" },
                                 postalService = selectedProvider,
-                                notificationsEnabled = notificationsEnabled
+                                notificationsEnabled = notificationsEnabled,
+                                trackingEvents = if (providerChanged) "" else packageEntity.trackingEvents,
+                                status = if (providerChanged) "IN_TRANSIT" else packageEntity.status,
+                                lastUpdate = if (providerChanged) "Waiting for tracking refresh" else packageEntity.lastUpdate,
+                                estimatedDelivery = if (providerChanged) "Pending" else packageEntity.estimatedDelivery
                             )
                         )
                     },

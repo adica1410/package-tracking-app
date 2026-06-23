@@ -68,7 +68,10 @@ class PackageViewModel(
             val updatedPackage = packageEntity.copy(
                 status = result.status,
                 lastUpdate = result.lastUpdate,
-                estimatedDelivery = result.estimatedDelivery
+                estimatedDelivery = result.estimatedDelivery,
+                trackingEvents = result.events.joinToString("||") { event ->
+                    "${event.title}###${event.description}###${event.date}###${event.completed}"
+                }
             )
 
             repository.updatePackage(updatedPackage)
@@ -90,7 +93,10 @@ class PackageViewModel(
             val updatedPackage = packageEntity.copy(
                 status = result.status,
                 lastUpdate = result.lastUpdate,
-                estimatedDelivery = result.estimatedDelivery
+                estimatedDelivery = result.estimatedDelivery,
+                trackingEvents = result.events.joinToString("||") { event ->
+                    "${event.title}###${event.description}###${event.date}###${event.completed}"
+                }
             )
 
             repository.updatePackage(updatedPackage)
