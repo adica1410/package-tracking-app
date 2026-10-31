@@ -126,4 +126,4 @@ The project involved requirements analysis, UML modeling, software architecture,
 
 ---
 
-*Designed and developed as an academic software engineering project, with an emphasis on practical problem-solving, maintainable architecture, and software quality.*
+
